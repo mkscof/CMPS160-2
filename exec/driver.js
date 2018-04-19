@@ -110,10 +110,10 @@ function initAttributes(gl) {
     	console.log("failed to get storage location of attribute");
     	return false;
     }
-    gl.vertexAttribPointer(a_Position, 3, gl.FLOAT, false, FSIZE * 4, 0);
+    gl.vertexAttribPointer(a_Position, 3, gl.FLOAT, false, FSIZE * 3, 0);
     gl.enableVertexAttribArray(a_Position);
-    gl.vertexAttribPointer(a_PointSize, 1, gl.FLOAT, false, FSIZE * 4, FSIZE * 3);
-    gl.enableVertexAttribArray(a_PointSize);
+    // gl.vertexAttribPointer(a_PointSize, 1, gl.FLOAT, false, FSIZE * 4, FSIZE * 3);
+    // gl.enableVertexAttribArray(a_PointSize);
     return true;
 }
 
@@ -161,7 +161,7 @@ function click(ev, gl, canvas) {
     g_points.push(x); // x-coordinate
     g_points.push(y); // y-coordinate
     g_points.push(0); // z-coordinate is 0; polyline lines in xy-plane z=0
-    g_points.push(g_points.length); // point size; make size increase with number of points
+    //g_points.push(g_points.length); // point size; make size increase with number of points
     
     // Clear canvas
     gl.clear(gl.COLOR_BUFFER_BIT);
@@ -174,7 +174,7 @@ function click(ev, gl, canvas) {
     	gl.clear(gl.COLOR_BUFFER_BIT);
     	/* PUT CODE TO GENERATE VERTICES/INDICES OF CYLINDER AND DRAW HERE */
     	//drawCylinder(gl);
-        drawRectangles(gl); // EXAMPLE: Generates rectangles whose corners are connected
+        //drawRectangles(gl); // EXAMPLE: Generates rectangles whose corners are connected
     	// drawPolyline(gl); // EXAMPLE: Draw polyline
     	// Remove click handle	
     	canvas.onmousedown = null; 
@@ -185,7 +185,7 @@ function click(ev, gl, canvas) {
 function drawPolyline(gl) {
     // Set vertices
     setVertexBuffer(gl, new Float32Array(g_points));
-    var n = Math.floor(g_points.length/4);
+    var n = Math.floor(g_points.length/3);
     // Set indices (just an array of the numbers 0 to (n-1), which connects them one by one)
     var ind = [];
     for (i = 0; i < n; ++i)
@@ -198,15 +198,33 @@ function drawPolyline(gl) {
 
 //Draws cylinders from clicked points
 function drawCylinder(gl){
-    var n = g_points.length - 1; // Number of rectangles
+    var n = (g_points.length / 3) - 1;
     var vert = [];
     var ind = [];
-    var rotMatrix =  new Matrix4(); 
+    var rotMatrix = new Matrix4();
 
-    for(i = 0; i < n; i++){
-        drawCylinderHelper(gl, vert, ind);
+    for(i = 0; i < n; i ++){
+        var axis = getAxis(gl, g_points[i], g_points[i + 1], 0.0, g_points[i + 3], g_points[i + 4], 0.0);   //perpendicular line
+        var vector = [axis[3], axis[4], axis[5], 0.0];  //terminus of perpendicular line
+        var vec4 = new Vector4(vector);
+        var rotated = rotMatrix;
+        
+        for(j = 0; j < 12; j++){    //rotate 12 times, getting points from matrix each rotation
+            rotated = rotated.rotate(30, axis[3], axis[4], axis[5]);
+            
+            var final = rotated.multiplyVector4(vec4);
+            
+            vert.push(final[0]);
+            vert.push(final[1]);
+            vert.push(final[2]);
+            if(j == 11){
+                ind.push(0);
+            }
+            else{
+                ind.push(i);
+            }
+        }
 
-        // Set vertices
         setVertexBuffer(gl, new Float32Array(vert));
         var n = ind.length;
         // Set indices
@@ -217,10 +235,6 @@ function drawCylinder(gl){
         vert = [];
         ind = [];
     }
-}
-
-function drawCylinderHelper(gl, vertices, indices){
-    return [vertices, indices];
 }
 
 function getAxis(gl, x1, y1, z1, x2, y2, z2){
@@ -237,55 +251,56 @@ function getAxis(gl, x1, y1, z1, x2, y2, z2){
     vector.push(yAxis);
     vector.push(0.0);
 
+    //vector.normalize();
+
     return vector;
 }
 
-// Draws connected rectangles between clicked points
-function drawRectangles(gl) {
-    var n = g_points.length - 1; // Number of rectangles
-    var vert = [];
-    var ind = [];
-    // Draw each individual rectangle separately
-    /* NOTE: You can also draw them all at once (single call to 'drawElements') if you want */
-    for (i = 0; i < n; ++i) {
-    	// First corner of rectangle
-    	vert.push(g_points[i*4]); // x coord
-    	vert.push(g_points[i*4 + 1]); // y coord
-    	vert.push(0); // z coord
-    	vert.push(1); // Point size
-    	ind.push(0);
-    	// Second corner of rectangle
-    	vert.push(g_points[i*4]);
-    	vert.push(g_points[(i+1)*4 + 1]);
-    	vert.push(0);
-    	vert.push(1);
-    	ind.push(1);
-    	// Third corner of rectangle
-    	vert.push(g_points[(i+1)*4]);
-    	vert.push(g_points[(i+1)*4 + 1]);
-    	vert.push(0);
-    	vert.push(1);
-    	ind.push(2);
-    	// Fourth corner of rectangle
-    	vert.push(g_points[(i+1)*4]);
-    	vert.push(g_points[i*4 + 1]);
-    	vert.push(0);
-    	vert.push(1);
-    	ind.push(3);
-    	// Connect First corner again to wrap lines around
-    	ind.push(0);
-    	// Set vertices
-    	setVertexBuffer(gl, new Float32Array(vert));
-    	var n = ind.length;
-    	// Set indices
-    	setIndexBuffer(gl, new Uint16Array(ind));
-     	// Draw rectangle
-    	gl.drawElements(gl.LINE_STRIP, n, gl.UNSIGNED_SHORT, 0);
-    	// Reset vertices and indices
-    	vert = [];
-    	ind = [];
-    }
-}
+// // Draws connected rectangles between clicked points
+//     var n = g_points.length - 1; // Number of rectangles
+//     var vert = [];
+//     var ind = [];
+//     // Draw each individual rectangle separately
+//     /* NOTE: You can also draw them all at once (single call to 'drawElements') if you want */
+//     for (i = 0; i < n; ++i) {
+//     	// First corner of rectangle
+//     	vert.push(g_points[i*4]); // x coord
+//     	vert.push(g_points[i*4 + 1]); // y coord
+//     	vert.push(0); // z coord
+//     	vert.push(1); // Point size
+//     	ind.push(0);
+//     	// Second corner of rectangle
+//     	vert.push(g_points[i*4]);
+//     	vert.push(g_points[(i+1)*4 + 1]);
+//     	vert.push(0);
+//     	vert.push(1);
+//     	ind.push(1);
+//     	// Third corner of rectangle
+//     	vert.push(g_points[(i+1)*4]);
+//     	vert.push(g_points[(i+1)*4 + 1]);
+//     	vert.push(0);
+//     	vert.push(1);
+//     	ind.push(2);
+//     	// Fourth corner of rectangle
+//     	vert.push(g_points[(i+1)*4]);
+//     	vert.push(g_points[i*4 + 1]);
+//     	vert.push(0);
+//     	vert.push(1);
+//     	ind.push(3);
+//     	// Connect First corner again to wrap lines around
+//     	ind.push(0);
+//     	// Set vertices
+//     	setVertexBuffer(gl, new Float32Array(vert));
+//     	var n = ind.length;
+//     	// Set indices
+//     	setIndexBuffer(gl, new Uint16Array(ind));
+//      	// Draw rectangle
+//     	gl.drawElements(gl.LINE_STRIP, n, gl.UNSIGNED_SHORT, 0);
+//     	// Reset vertices and indices
+//     	vert = [];
+//     	ind = [];
+//     }
+// }
 
 // loads SOR file and draws object
 function updateScreen(canvas, gl) {
