@@ -161,7 +161,7 @@ function click(ev, gl, canvas) {
     g_points.push(x); // x-coordinate
     g_points.push(y); // y-coordinate
     g_points.push(0); // z-coordinate is 0; polyline lines in xy-plane z=0
-    //g_points.push(g_points.length); // point size; make size increase with number of points
+    g_points.push(g_points.length); // point size; make size increase with number of points
     
     // Clear canvas
     gl.clear(gl.COLOR_BUFFER_BIT);
@@ -207,13 +207,13 @@ function drawRectangles(gl) {
 	vert.push(g_points[i*4]); // x coord
 	vert.push(g_points[i*4 + 1]); // y coord
 	vert.push(0); // z coord
-	//vert.push(1); // Point size
+	vert.push(1); // Point size
 	ind.push(0);
 	// Second corner of rectangle
 	vert.push(g_points[i*4]);
 	vert.push(g_points[(i+1)*4 + 1]);
 	vert.push(0);
-	//vert.push(1);
+	vert.push(1);
 	ind.push(1);
 	// Third corner of rectangle
 	vert.push(g_points[(i+1)*4]);
@@ -225,7 +225,7 @@ function drawRectangles(gl) {
 	vert.push(g_points[(i+1)*4]);
 	vert.push(g_points[i*4 + 1]);
 	vert.push(0);
-	//vert.push(1);
+	vert.push(1);
 	ind.push(3);
 	// Connect First corner again to wrap lines around
 	ind.push(0);
