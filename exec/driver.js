@@ -173,7 +173,7 @@ function click(ev, gl, canvas) {
     	// Clear canvas
     	gl.clear(gl.COLOR_BUFFER_BIT);
     	/* PUT CODE TO GENERATE VERTICES/INDICES OF CYLINDER AND DRAW HERE */
-    	//drawCylinder(gl);
+    	drawCylinder(gl);
         //drawRectangles(gl); // EXAMPLE: Generates rectangles whose corners are connected
     	// drawPolyline(gl); // EXAMPLE: Draw polyline
     	// Remove click handle	
@@ -198,63 +198,128 @@ function drawPolyline(gl) {
 
 //Draws cylinders from clicked points
 function drawCylinder(gl){
-    var n = (g_points.length / 3) - 1;
+    var n = Math.floor((g_points.length / 3)) - 1;
     var vert = [];
     var ind = [];
-    var rotMatrix = new Matrix4();
-
-    for(i = 0; i < n; i ++){
-        var axis = getAxis(gl, g_points[i], g_points[i + 1], 0.0, g_points[i + 3], g_points[i + 4], 0.0);   //perpendicular line
-        var vector = [axis[3], axis[4], axis[5], 0.0];  //terminus of perpendicular line
-        var vec4 = new Vector4(vector);
-        var rotated = rotMatrix;
-        
-        for(j = 0; j < 12; j++){    //rotate 12 times, getting points from matrix each rotation
-            rotated = rotated.rotate(30, axis[3], axis[4], axis[5]);
-            
-            var final = rotated.multiplyVector4(vec4);
-            
-            vert.push(final[0]);
-            vert.push(final[1]);
-            vert.push(final[2]);
-            if(j == 11){
-                ind.push(0);
+    var inc1 =1;
+    var inc2 =37;
+    //More than one click made
+    if(n > 1){
+        for(i = 0; i < n; i++){
+            var polygon = drawRotatedPolygonWireframe(gl, vert, ind, .2, g_points[i*3], g_points[(i*3)+1], 30);
+            var pVert = polygon[0];
+            //var iVert = polygon[1];
+            for(p = 0; p < pVert.length; p++){
+                vert.push(pVert[p]);
             }
-            else{
-                ind.push(i);
+            console.log(vert.length);
+         //   console.log(JSON.stringify(vert));
+           // console.log(JSON.stringify(ind));
+           console.log(n);
+           if(i>0){
+                     //7 lines per face on the cylinder
+                for(y = 0; y < 12; y++){
+                    if(y < 11){
+                        ind.push(inc1+(y*3));
+                        ind.push(inc2+(y*3));
+                        ind.push(inc1+(y*3)+1);
+                       /*ind.push(inc2+(y*3)+1); //if you wanted to make x"s not sure
+                        ind.push(inc1+(y*3));
+                        ind.push(inc1+(y*3)+1);*/
+                    }
+                    else{
+                        ind.push(inc1+(y*3));
+                        ind.push(inc2+(y*3));
+                        ind.push(inc1);
+                       /* ind.push(inc2); //if you wanted to make x's not sure
+                        ind.push(inc1+(y*3));
+                        ind.push(inc1);*/
+                        
+                    }
+                }
+                inc1=inc2;
+                inc2=inc2+36;
             }
         }
-
-        setVertexBuffer(gl, new Float32Array(vert));
-        var n = ind.length;
-        // Set indices
-        setIndexBuffer(gl, new Uint16Array(ind));
-        // Draw rectangle
-        gl.drawElements(gl.LINE_STRIP, n, gl.UNSIGNED_SHORT, 0);
-        // Reset vertices and indices
-        vert = [];
-        ind = [];
+        console.log(ind.length);
     }
+
+    setVertexBuffer(gl, new Float32Array(vert));
+    var len = ind.length;
+    // Set indices
+    setIndexBuffer(gl, new Uint16Array(ind));
+    // Draw rectangle
+    gl.drawElements(gl.LINE_STRIP, len, gl.UNSIGNED_SHORT, 0);
+    // Reset vertices and indices
+    var vert = [];
+    var ind = [];
 }
 
-function getAxis(gl, x1, y1, z1, x2, y2, z2){
-    var yAxis = -1.0 / (y2 - y1);
-    var xAxis = -1.0 / (x2 - x1);;
-    var vector = [];
+// draws an n-sided polygon wireframe with radius r centered at (c_x, c_y)
+// polygon starts within xy-plane, and is rotated along y axis rot degrees
+// Taken from hints in example code
+function drawRotatedPolygonWireframe(gl, vert, ind, rad, c_x, c_y, rot) {
+    var vert = []; // vertex array
+    var ind = []; // index array
+    // angle (in radians) between sides
+    var angle = (2 * Math.PI) / 12;
+    // angle of rotation in radians
+    rot = (rot/180) * Math.PI;
+    // create triangles
+    for (var i = 0; i < 12; i++) {
+        // calculate the vertex locations
+        var x1 = (Math.cos(rot) * (rad * Math.cos(angle * i))) + c_x;
+        var y1 = (rad * Math.sin(angle * i)) + c_y;
+        var z1 = (Math.sin(rot) * (rad * Math.sin(angle * i)));
+        var j = i + 1;
+        var x2 = (Math.cos(rot) * (rad * Math.cos(angle * j))) + c_x;
+        var y2 = (rad * Math.sin(angle * j)) + c_y;
+        var z2 = (Math.sin(rot) * (rad * Math.sin(angle * j)));
+        // center vertex
+        vert.push(c_x); 
+        vert.push(c_y); 
+        vert.push(0);
+        // first outer vertex
+        vert.push(x1);
+        vert.push(y1);
+        vert.push(z1);
+        // second outer vertex
+        vert.push(x2);
+        vert.push(y2);
+        vert.push(z2);
+        // connect vertices
+        ind.push(i * 3); // start at center
+        ind.push((i * 3) + 1); // go to first outer vertex
+        ind.push((i * 3) + 2); // go to second outer vertex
+        ind.push(i * 3); // go back to center
+    }
+    // set buffers
+    setVertexBuffer(gl, new Float32Array(vert));
+    setIndexBuffer(gl, new Uint16Array(ind));
+    // draw polygon
+    gl.drawElements(gl.LINE_STRIP, ind.length, gl.UNSIGNED_SHORT, 0);
 
-    //Push origin
-    vector.push(x1);
-    vector.push(y1);
-    vector.push(0.0);
-    //Push perpendicular coordinates
-    vector.push(xAxis);
-    vector.push(yAxis);
-    vector.push(0.0);
-
-    //vector.normalize();
-
-    return vector;
+    return [vert, ind];
 }
+//Gets axis of rotation
+// function getAxis(gl, x1, y1, z1, x2, y2, z2){
+//     var yFinal = -1.0 / (y2 - y1);
+//     var xFinal = -1.0 / (x2 - x1);
+//     var vector = [];
+
+//     //Push origin
+//     vector.push(x1);
+//     vector.push(y1);
+//     vector.push(0.0);
+//     //Push perpendicular coordinates
+//     vector.push(xFinal);
+//     vector.push(yFinal);
+//     vector.push(0.0);
+
+//     //vector.normalize();
+
+//     return vector;
+// }
 
 // // Draws connected rectangles between clicked points
 //     var n = g_points.length - 1; // Number of rectangles
