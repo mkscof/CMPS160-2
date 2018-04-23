@@ -148,6 +148,7 @@ function keypress(ev, gl) {
     gl.clear(gl.COLOR_BUFFER_BIT);
     // Draw polyline
     drawPolyline(gl);
+    drawCylinder(gl);
 }
 
 // Called when user clicks on canvas
@@ -177,7 +178,7 @@ function click(ev, gl, canvas) {
         //drawRectangles(gl); // EXAMPLE: Generates rectangles whose corners are connected
     	// drawPolyline(gl); // EXAMPLE: Draw polyline
     	// Remove click handle	
-    	canvas.onmousedown = null; 
+    	// canvas.onmousedown = null; 
     }
 }
 
@@ -212,10 +213,10 @@ function drawCylinder(gl){
             for(p = 0; p < pVert.length; p++){
                 vert.push(pVert[p]);
             }
-            console.log(vert.length);
-         //   console.log(JSON.stringify(vert));
-           // console.log(JSON.stringify(ind));
-           console.log(n);
+           //  console.log(vert.length);
+           //  console.log(JSON.stringify(vert));
+           //  console.log(JSON.stringify(ind));
+           // console.log(n);
            if(i>0){
                      //7 lines per face on the cylinder
                 for(y = 0; y < 12; y++){
